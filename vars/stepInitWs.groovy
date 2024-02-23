@@ -72,4 +72,7 @@ def call(Map target = [:]) {
 
 	'''
 
+
+	stash includes: "meta-*/**, poky/**, trustme/**", name: 'ws-yocto', useDefaultExcludes: false, allowEmpty: false
+	stash includes: ".manifests/**", name: 'manifests', useDefaultExcludes: false, allowEmpty: false
 }
