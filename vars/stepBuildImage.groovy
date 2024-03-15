@@ -5,10 +5,11 @@ def call(Map target) {
 
 	stepWipeWs(target.workspace)
 
-	unstash 'ws-yocto'
+	unstash "${BUILD_NUMBER}-ws-yocto"
+	unstash "${BUILD_NUMBER}-manifests"
 
 	sh label: 'Perform Yocto build', script: """
-		echo "Running on host: ${NODE_NAME}"
+		echo "Running on host: ${env.BUILDNODE}"
 		export LC_ALL=en_US.UTF-8
 		export LANG=en_US.UTF-8
 		export LANGUAGE=en_US.UTF-8
@@ -65,7 +66,7 @@ def call(Map target) {
 
 
 	// TODO replace trustmeimage.img by artifact download
-	//stash includes: "out-**/tmp/deploy/images/**/trustme_image/trustmeimage.img, out-dev/test_certificates/**, trustme/build/**, meta-trustx/scripts/ci/**", excludes: "**/oe-logs/**, **/oe-workdir/**", name: "img-${target.buildtype}"	
+	stash includes: "out-dev/test_certificates/**, meta-trustx/**, trustme/build/**, meta-trustx/scripts/ci/**", excludes: "**/oe-logs/**, **/oe-workdir/**", name: "${BUILD_NUMBER}-buildout-${target.buildtype}"	
 
 	sh label: 'Compress trustmeimage.img', script: "xz -T 0 -f out-${target.buildtype}/tmp/deploy/images/*/trustme_image/trustmeimage.img --keep"
 	//sh label: 'Compress trustmeimage.img', script: "mkdir -p a/b/c && touch a/b/c/testfile && xz -T 0 -f a/*/c/testfile --keep"
