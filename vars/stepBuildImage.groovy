@@ -3,13 +3,18 @@ def call(Map target) {
 	//	find "${target.workspace}" -mindepth 1 -exec rm -fr {} \\;
 	//"""
 
+	echo "Running on host: ${NODE_NAME}"
+
+	// workaround for missing ability to retrieve build number from CopyArtifacts plugin as suggested in JENKINS-34620
+	writeFile file: "${target.workspace}/.build_no", text: "${BUILD_NUMBER}"
+
+
 	stepWipeWs(target.workspace)
 
 	unstash "${BUILD_NUMBER}-ws-yocto"
 	unstash "${BUILD_NUMBER}-manifests"
 
 	sh label: 'Perform Yocto build', script: """
-		echo "Running on host: ${env.BUILDNODE}"
 		export LC_ALL=en_US.UTF-8
 		export LANG=en_US.UTF-8
 		export LANGUAGE=en_US.UTF-8
@@ -64,12 +69,10 @@ def call(Map target) {
 		fi
 	"""
 
-
-	// TODO replace trustmeimage.img by artifact download
-	stash includes: "out-dev/test_certificates/**, meta-trustx/**, trustme/build/**, meta-trustx/scripts/ci/**", excludes: "**/oe-logs/**, **/oe-workdir/**", name: "${BUILD_NUMBER}-buildout-${target.buildtype}"	
-
 	sh label: 'Compress trustmeimage.img', script: "xz -T 0 -f out-${target.buildtype}/tmp/deploy/images/*/trustme_image/trustmeimage.img --keep"
-	//sh label: 'Compress trustmeimage.img', script: "mkdir -p a/b/c && touch a/b/c/testfile && xz -T 0 -f a/*/c/testfile --keep"
+
+	//TODO move scrips/ci to shared lib
+	stash includes: "out-${target.buildtype}/test_certificates/**, meta-trustx/**, trustme/build/**, meta-trustx/scripts/ci/**", excludes: "**/oe-logs/**, **/oe-workdir/**", name: "${BUILD_NUMBER}-buildout-${target.buildtype}"	
 
 	script {
 		if (target.build_installer && "y" == target.build_installer) {
@@ -81,9 +84,7 @@ def call(Map target) {
 				       out-${target.buildtype}/tmp/deploy/images/**/trustme_image/trustmeinstaller.img.xz, \
 				       out-${target.buildtype}/test_certificates/**, \
 				       out-${target.buildtype}/tmp/deploy/images/**/ssh-keys/**, \
-				       out-${target.buildtype}/tmp/deploy/images/**/cml_updates/kernel-**.tar" , fingerprint: true
-
-
+				       out-${target.buildtype}/tmp/deploy/images/**/cml_updates/kernel-**.tar, .buildNumber" , fingerprint: true
 
 		script {
 			if (target.sync_mirrors && "y" == target.sync_mirrors) {
@@ -113,5 +114,4 @@ def call(Map target) {
 				echo "Skipping sstate cache sync"
 			}
 		}
-
 }

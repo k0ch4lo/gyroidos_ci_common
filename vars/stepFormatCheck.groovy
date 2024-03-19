@@ -1,7 +1,9 @@
-def call(String workspace) {
-	sh 'echo "Checking formatting"'
+def call(String sourcedir) {
+	echo "Checking formatting for sources at ${sourcedir}, WORKSPACE: ${WORKSPACE}"
+	sh label: 'Clean CML Repo', script: "git -C ${sourcedir} clean -fx"
 
-	sh label: 'Clean CML Repo', script: "git -C ${workspace}/trustme/cml clean -fx"
-	
-	sh label: 'Check code formatting', script: "${workspace}/meta-trustx/scripts/ci/check-if-code-is-formatted.sh"
+	checkscript = libraryResource('check-if-code-is-formatted.sh')	
+	writeFile file: "${WORKSPACE}/check-if-code-is-formatted.sh", text: "${checkscript}"	
+
+	sh label: 'Check code formatting', script: "bash ${WORKSPACE}/check-if-code-is-formatted.sh ${sourcedir}"
 }
