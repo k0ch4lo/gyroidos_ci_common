@@ -68,14 +68,16 @@ def call(Map target) {
 
 		cd ${target.workspace}/out-${target.buildtype}
 
+		MIRRORPATH="/yocto_mirror/${target.yocto_version}/${target.gyroid_machine}/"
+
 		echo "INHERIT += \\\"own-mirrors\\\"" >> conf/local.conf
-		echo "SOURCE_MIRROR_URL = \\\"file:///source_mirror\\\"" >> conf/local.conf
+		echo "SOURCE_MIRROR_URL = \\\"file:///\$MIRRORPATH/sources/\\\"" >> conf/local.conf
 		echo "BB_GENERATE_MIRROR_TARBALLS = \\\"1\\\"" >> conf/local.conf
 
-		if [ "n" = "${target.sync_mirrors}" ];then
-			echo "SSTATE_MIRRORS =+ \\\"file://.* file:///sstate_mirror/${target.buildtype}/PATH\\\"" >> conf/local.conf
-		else
+		if [ "y" = "${target.sync_mirrors}" ];then
 			echo "Not using sstate cache for mirror sync"
+		else
+			echo "SSTATE_MIRRORS =+ \\\"file://.* file:///\$MIRRORPATH/sstate-cache/${target.buildtype}/PATH\\\"" >> conf/local.conf
 		fi
 
 		echo "BB_SIGNATURE_HANDLER = \\\"OEBasicHash\\\"" >> conf/local.conf
@@ -108,7 +110,7 @@ def call(Map target) {
 	}
 
 	if (target.containsKey("sync_mirrors") && "y" == target.sync_mirrors) {
-		stepSyncMirrors(workspace: "${target.workspace}", yocto_version: "${target.yocto_version}", gyroid_arch: "${target.gyroid_arch}",  buildtype: "${target.buildtype}", build_number: "${BUILD_NUMBER}")
+		stepSyncMirrors(workspace: "${target.workspace}", yocto_version: "${target.yocto_version}", gyroid_machine: "${target.gyroid_machine}",  buildtype: "${target.buildtype}", build_number: "${BUILD_NUMBER}")
 	}
 
 	archiveArtifacts artifacts: "out-${target.buildtype}/tmp/deploy/images/**/trustme_image/trustmeimage.img.xz, \
