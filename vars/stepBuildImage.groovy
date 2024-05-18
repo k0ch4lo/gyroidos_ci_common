@@ -19,6 +19,8 @@ def call(Map target) {
 
 	stepWipeWs(target.workspace)
 
+	echo "Testpr, Build stage"
+
 	def artifact_build_no = utilGetArtifactBuildNo(workspace: target.workspace, selector: target.selector)
 
 	if (("${BUILD_NUMBER}" != "${artifact_build_no}") && ("n" == "${target.rebuild_previous}")) {
