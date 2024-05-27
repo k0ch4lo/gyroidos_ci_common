@@ -48,13 +48,15 @@ def integrationTestX86(Map target = [:]) {
 		writeFile file: "${target.workspace}/VM-container-tests.sh", text: "${testscript}"
 		writeFile file: "${target.workspace}/VM-container-commands.sh", text: "${testcommands}"
 
-		sh label: "Perform integration test", script: """
-			bash ${target.workspace}/VM-container-tests.sh --mode "${test_mode}" --dir "${target.workspace}" --image trustmeimage.img --pki "${target.workspace}/test_certificates" --name "testvm" --ssh 2222 --kill --vnc 1 --log-dir "${target.workspace}/cml_logs" ${schsm_opts}
+		catchError(message: 'Integration test failed', stageResult: 'FAILURE') {
+			sh label: "Perform integration test", script: """
+				bash ${target.workspace}/VM-container-tests.sh --mode "${test_mode}" --dir "${target.workspace}" --image trustmeimage.img --pki "${target.workspace}/test_certificates" --name "testvm" --ssh 2222 --kill --vnc 1 --log-dir "${target.workspace}/out-${target.buildtype}/cml_logs" ${schsm_opts}
 		"""
+		}
 	}
 
 	echo "Archiving CML logs"
-	archiveArtifacts artifacts: 'out-**/cml_logs/**, cml_logs/**', fingerprint: true, allowEmptyArchive: true
+	archiveArtifacts artifacts: 'out-**/cml_logs/**', fingerprint: true, allowEmptyArchive: true
 }
 
 @Field def integrationTestMap = ["genericx86-64": this.&integrationTestX86];

@@ -35,7 +35,7 @@ fetch_logs() {
 	if [ -z "${LOG_DIR}" ];then
 		echo "-l / --log-dir not specified, skipping log file retrieval"
 	else
-		mkdir "${LOG_DIR}"
+		mkdir -p "${LOG_DIR}"
 		skip=$(/sbin/fdisk -lu ${PROCESS_NAME}.img | tail -n1 | awk '{print $2}')
 		sectors=$(/sbin/fdisk -lu ${PROCESS_NAME}.img | tail -n1 | awk '{print $3}')
 		dd if=${PROCESS_NAME}.img of=${PROCESS_NAME}.data bs=512 skip=${skip} count=${sectors}
@@ -721,7 +721,7 @@ while [[ $# > 0 ]]; do
       ;;
     -l| --log-dir)
       shift
-      LOG_DIR="$(readlink -v -f $1)"
+      LOG_DIR="$(readlink -v -m $1)"
       shift
       ;;
 
