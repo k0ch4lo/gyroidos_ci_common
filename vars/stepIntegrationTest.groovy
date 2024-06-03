@@ -2,57 +2,58 @@ import groovy.transform.Field
 import org.jenkinsci.plugins.pipeline.modeldefinition.Utils
 
 def integrationTestX86(Map target = [:]) {
-
 	stepWipeWs(target.workspace)
 
-	script {
-		if ((! target.containsKey("workspace")) || (! target.containsKey("buildtype")) || (! target.containsKey("schsm_serial")) || (! target.containsKey("schsm_pin"))) {
-			error("Missing keys in map 'target'")
-		}
+	if ((! target.containsKey("workspace")) || (! target.containsKey("buildtype")) || (! target.containsKey("schsm_serial")) || (! target.containsKey("schsm_pin"))) {
+		error("Missing keys in map 'target'")
+	}
 
+	step ([$class: 'CopyArtifact',
+		projectName: env.JOB_NAME,
+		selector: target.selector,
+		filter: "out-${target.buildtype}/**/trustmeimage.img.xz, sources-${target.gyroid_arch}-${target.gyroid_machine}.tar",
+		flatten: true]);
+
+
+	dir("${target.workspace}/test_certificates") {
 		step ([$class: 'CopyArtifact',
 			projectName: env.JOB_NAME,
 			selector: target.selector,
-			filter: "out-${target.buildtype}/**/trustmeimage.img.xz, sources-${target.gyroid_arch}-${target.gyroid_machine}.tar",
+			filter: "out-${target.buildtype}/test_certificates/**",
 			flatten: true]);
+	}
 
 
-		dir("${target.workspace}/test_certificates") {
-			step ([$class: 'CopyArtifact',
-				projectName: env.JOB_NAME,
-				selector: target.selector,
-				filter: "out-${target.buildtype}/test_certificates/**",
-				flatten: true]);
-		}
+	def artifact_build_no = utilGetArtifactBuildNo(workspace: target.workspace, selector: target.selector)
+
+	echo "Using stash of build number determined by selector: ${artifact_build_no}"
+
+	sh "echo \"Unpacking sources\" && tar -C \"${target.workspace}\" -xf sources-${target.gyroid_arch}-${target.gyroid_machine}.tar"
+
+	sh label: "Extract image", script: 'unxz -T0 trustmeimage.img.xz'
 
 
-		def artifact_build_no = utilGetArtifactBuildNo(workspace: target.workspace, selector: target.selector)
+	testscript = libraryResource('VM-container-tests.sh')	
+	testcommands = libraryResource('VM-container-commands.sh')	
 
-		echo "Using stash of build number determined by selector: ${artifact_build_no}"
+	writeFile file: "${target.workspace}/VM-container-tests.sh", text: "${testscript}"
+	writeFile file: "${target.workspace}/VM-container-commands.sh", text: "${testcommands}"
 
-		sh "echo \"Unpacking sources\" && tar -C \"${target.workspace}\" -xf sources-${target.gyroid_arch}-${target.gyroid_machine}.tar"
+	catchError(message: 'Integration test failed', stageResult: 'FAILURE') {
+		sh label: "Perform integration test", script: """
+			if ! [ -z "${target.schsm_serial}" ];then
+				schsm_opts="--enable-schsm ${target.schsm_serial} ${target.schsm_pin}"
+				test_mode="dev"
 
-		sh label: "Extract image", script: 'unxz -T0 trustmeimage.img.xz'
-
-		if (target.schsm_serial) {
-			schsm_opts="--enable-schsm ${target.schsm_serial} ${target.schsm_pin}"
-			test_mode="dev"
-		} else {
-			schsm_opts=""
-			test_mode="${target.buildtype}"
-		}
+				echo "Testing image with \'\$schsm_opts\' and mode \'dev\'"
+			else
+				schsm_opts=""
+				test_mode="${target.buildtype}"
+				echo "Testing image with mode \$test_mode"
+			fi
 	
-		testscript = libraryResource('VM-container-tests.sh')	
-		testcommands = libraryResource('VM-container-commands.sh')	
-
-		writeFile file: "${target.workspace}/VM-container-tests.sh", text: "${testscript}"
-		writeFile file: "${target.workspace}/VM-container-commands.sh", text: "${testcommands}"
-
-		catchError(message: 'Integration test failed', stageResult: 'FAILURE') {
-			sh label: "Perform integration test", script: """
-				bash ${target.workspace}/VM-container-tests.sh --mode "${test_mode}" --dir "${target.workspace}" --image trustmeimage.img --pki "${target.workspace}/test_certificates" --name "testvm" --ssh 2222 --kill --vnc 1 --log-dir "${target.workspace}/out-${target.buildtype}/cml_logs" ${schsm_opts}
+			bash ${target.workspace}/VM-container-tests.sh --mode "\$test_mode" --dir "${target.workspace}" --image trustmeimage.img --pki "${target.workspace}/test_certificates" --name "testvm" --ssh 2222 --kill --vnc 1 --log-dir "${target.workspace}/out-${target.buildtype}/cml_logs" \$schsm_opts
 		"""
-		}
 	}
 
 	echo "Archiving CML logs"
