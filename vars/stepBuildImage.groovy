@@ -17,7 +17,7 @@ def call(Map target) {
 
 	echo "Entering stepBuildImage with parameters:\n\tworkspace: ${target.workspace}\n\tmanifest_path: ${target.manifest_path}\n\tmanifest_name: ${target.manifest_name}\n\tgyroid_arch: ${target.gyroid_arch}\n\tgyroid_machine: ${target.gyroid_machine}\n\tbuildtype: ${target.buildtype}\n\tselector: ${buildParameter('BUILDSELECTOR')}\n\tbuild_installer: ${target.build_installer}\n\tsync_mirrors: ${target.sync_mirrors}\n\trebuild_previous: ${target.rebuild_previous}"
 
-	stepWipeWs(target.workspace)
+	stepWipeWs(target.workspace, target.manifest_path)
 
 	def artifact_build_no = utilGetArtifactBuildNo(workspace: target.workspace, selector: target.selector)
 

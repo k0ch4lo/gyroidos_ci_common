@@ -2,11 +2,9 @@ import groovy.transform.Field
 import org.jenkinsci.plugins.pipeline.modeldefinition.Utils
 
 def integrationTestX86(Map target = [:]) {
-	stepWipeWs(target.workspace)
+	echo "Entering stepIntegrationTest with parameters:\n\tworkspace: ${target.workspace}\n\tmanifest_path: ${target.manifest_path}\n\tbuildtype: ${target.buildtype}\n\tschsm_serial: ${target.schsm_serial}\n\tschsm_pin ${target.schsm_pin}"
 
-	if ((! target.containsKey("workspace")) || (! target.containsKey("buildtype")) || (! target.containsKey("schsm_serial")) || (! target.containsKey("schsm_pin"))) {
-		error("Missing keys in map 'target'")
-	}
+	stepWipeWs(target.workspace, target.manifest_path)
 
 	step ([$class: 'CopyArtifact',
 		projectName: env.JOB_NAME,

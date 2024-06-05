@@ -14,6 +14,7 @@ def call(Map target = [:]) {
 	echo "Running on host: ${NODE_NAME}"
 
 	echo "Entering stepInitWs with parameters:\n\t workspace: ${target.workspace}\n\t manifest_path: ${target.manifest_path}\n\tmanifest_name: ${target.manifest_name}\n\tgyroid_arch: ${target.gyroid_arch}\n\tgyroid_machine: ${target.gyroid_machine}\n\tselector: ${buildParameter('BUILDSELECTOR')}\n\trebuild_previous: ${target.rebuild_previous}"
+
 	utilArchiveBuildNo(workspace: target.workspace, build_number: BUILD_NUMBER)
 
 
@@ -25,7 +26,7 @@ def call(Map target = [:]) {
 		return
 	}
 
-	stepWipeWs(target.workspace)
+	stepWipeWs(target.workspace, target.manifest_path)
 
 	sh label: 'Repo init', script: """
 		cd ${target.workspace}/.manifests
