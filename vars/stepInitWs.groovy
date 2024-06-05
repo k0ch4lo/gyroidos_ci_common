@@ -27,9 +27,6 @@ def call(Map target = [:]) {
 
 	stepWipeWs(target.workspace)
 
-	//TODO temporary
-	sh 'pwd && rm -fr .manifests && git clone https://github.com/gyroidos/gyroidos -b kirkstone .manifests'
-
 	sh label: 'Repo init', script: """
 		cd ${target.workspace}/.manifests
 		git rev-parse --verify jenkins-ci && git branch -D jenkins-ci
@@ -39,7 +36,6 @@ def call(Map target = [:]) {
 		repo init --depth=1 -u ${target.manifest_path} -b "jenkins-ci" -m ${target.manifest_name}
 	"""
 
-	// TODO test port with CML PRs
 	sh label: 'Parse PRs + repo sync', script: """
 		mkdir -p .repo/local_manifests
 
