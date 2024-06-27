@@ -2,14 +2,14 @@ import groovy.transform.Field
 import org.jenkinsci.plugins.pipeline.modeldefinition.Utils
 
 def integrationTestX86(Map target = [:]) {
-	echo "Entering stepIntegrationTest with parameters:\n\tworkspace: ${target.workspace}\n\tmanifest_path: ${target.manifest_path}\n\tbuildtype: ${target.buildtype}\n\tschsm_serial: ${target.schsm_serial}\n\tschsm_pin ${target.schsm_pin}"
+	echo "Entering stepIntegrationTest with parameters:\n\tworkspace: ${target.workspace}\n\tsource_tarball: ${target.source_tarball}\n\tmanifest_path: ${target.manifest_path}\n\tbuildtype: ${target.buildtype}\n\tschsm_serial: ${target.schsm_serial}\n\tschsm_pin ${target.schsm_pin}"
 
 	stepWipeWs(target.workspace, target.manifest_path)
 
 	step ([$class: 'CopyArtifact',
 		projectName: env.JOB_NAME,
 		selector: target.selector,
-		filter: "out-${target.buildtype}/**/trustmeimage.img.xz, sources-${target.gyroid_arch}-${target.gyroid_machine}.tar",
+		filter: "out-${target.buildtype}/**/trustmeimage.img.xz, ${target.source_tarball}",
 		flatten: true]);
 
 
@@ -26,7 +26,7 @@ def integrationTestX86(Map target = [:]) {
 
 	echo "Using stash of build number determined by selector: ${artifact_build_no}"
 
-	sh "echo \"Unpacking sources\" && tar -C \"${target.workspace}\" -xf sources-${target.gyroid_arch}-${target.gyroid_machine}.tar"
+	sh "echo \"Unpacking sources\" && tar -C \"${target.workspace}\" -xf ${target.source_tarball}"
 
 	sh label: "Extract image", script: 'unxz -T0 trustmeimage.img.xz'
 
@@ -41,7 +41,7 @@ def integrationTestX86(Map target = [:]) {
 		sh label: "Perform integration test", script: """
 			if ! [ -z "${target.schsm_serial}" ];then
 				schsm_opts="--enable-schsm ${target.schsm_serial} ${target.schsm_pin}"
-				test_mode="dev"
+				test_mode="${target.buildtype}"
 
 				echo "Testing image with \'\$schsm_opts\' and mode \'dev\'"
 			else
@@ -72,7 +72,7 @@ def call(Map target) {
 
 	echo "Running on host: ${NODE_NAME}"
 
-	echo "Entering stepIntegrationTest with parameters:\n\tworkspace: ${target.workspace}\n\tgyroid_arch: ${target.gyroid_arch}\n\tgyroid_machine: ${target.gyroid_machine}\n\tbuildtype: ${target.buildtype}\n\tselector: ${buildParameter('BUILDSELECTOR')}\n\tschsm_serial: ${target.schsm_serial}\n\tschsm_pin: ${target.schsm_pin}\n\t"
+	echo "Entering stepIntegrationTest with parameters:\n\tworkspace: ${target.workspace}\n\tsource_tarball: ${target.source_tarball}\n\tgyroid_machine: ${target.gyroid_machine}\n\tbuildtype: ${target.buildtype}\n\tselector: ${buildParameter('BUILDSELECTOR')}\n\tschsm_serial: ${target.schsm_serial}\n\tschsm_pin: ${target.schsm_pin}\n\t"
 
 	script {
 		def testFunc = integrationTestMap[target.gyroid_machine];
